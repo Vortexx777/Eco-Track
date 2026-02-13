@@ -1,0 +1,1180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <base target="_self">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EcoTracker - Environmental Tracking</title>
+    <meta name="description" content="Track and classify waste with EcoTracker">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#10B981",
+                        secondary: "#059669",
+                        accent: "#34D399",
+                        dark: "#064E3B",
+                        light: "#D1FAE5"
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'system-ui', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .camera-container {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .camera-feed {
+            transform: scaleX(-1);
+        }
+        
+        .pulse-animation {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.7;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100">
+    <!-- Login/Register Page -->
+    <div id="auth-page" class="min-h-screen flex flex-col items-center justify-center p-4">
+        <div class="w-full max-w-md">
+            <!-- Logo and Header -->
+            <div class="text-center mb-8">
+                <div class="flex items-center justify-center mb-4">
+                    <div class="w-12 h-12 bg-primary rounded-full flex items-center justify-center">
+                        <i class="fas fa-leaf text-white text-2xl"></i>
+                    </div>
+                </div>
+                <h1 class="text-3xl font-bold text-dark mb-2">EcoTracker</h1>
+                <p class="text-gray-600">Track. Classify. Make a Difference.</p>
+            </div>
+            
+            <!-- Auth Forms -->
+            <div class="bg-white rounded-2xl shadow-xl p-6">
+                <!-- Toggle between Login and Register -->
+                <div class="flex mb-6 border-b">
+                    <button id="login-tab" class="flex-1 py-3 font-medium text-center border-b-2 border-primary text-primary">
+                        Login
+                    </button>
+                    <button id="register-tab" class="flex-1 py-3 font-medium text-center text-gray-500">
+                        Register
+                    </button>
+                </div>
+                
+                <!-- Login Form -->
+                <form id="login-form" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                        <input type="email" id="login-email" required
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                            placeholder="Enter your email">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                        <input type="password" id="login-password" required
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                            placeholder="Enter your password">
+                    </div>
+                    
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <input type="checkbox" id="remember-me"
+                                class="h-4 w-4 text-primary rounded focus:ring-primary">
+                            <label for="remember-me" class="ml-2 text-sm text-gray-600">Remember me</label>
+                        </div>
+                        <a href="#" class="text-sm text-primary hover:text-dark">Forgot password?</a>
+                    </div>
+                    
+                    <button type="submit"
+                        class="w-full bg-primary hover:bg-secondary text-white font-medium py-3 px-4 rounded-lg transition duration-300">
+                        Sign In
+                    </button>
+                </form>
+                
+                <!-- Register Form -->
+                <form id="register-form" class="space-y-4 hidden">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                        <input type="text" id="register-name" required
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                            placeholder="Enter your full name">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                        <input type="email" id="register-email" required
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                            placeholder="Enter your email">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                        <input type="password" id="register-password" required
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                            placeholder="Create a password">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+                        <input type="password" id="register-confirm-password" required
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                            placeholder="Confirm your password">
+                    </div>
+                    
+                    <div class="flex items-center">
+                        <input type="checkbox" id="terms" required
+                            class="h-4 w-4 text-primary rounded focus:ring-primary">
+                        <label for="terms" class="ml-2 text-sm text-gray-600">
+                            I agree to the <a href="#" class="text-primary hover:text-dark">Terms of Service</a> and <a href="#" class="text-primary hover:text-dark">Privacy Policy</a>
+                        </label>
+                    </div>
+                    
+                    <button type="submit"
+                        class="w-full bg-primary hover:bg-secondary text-white font-medium py-3 px-4 rounded-lg transition duration-300">
+                        Create Account
+                    </button>
+                </form>
+                
+                <!-- Divider -->
+                <div class="my-6 relative">
+                    <div class="absolute inset-0 flex items-center">
+                        <div class="w-full border-t border-gray-300"></div>
+                    </div>
+                    <div class="relative flex justify-center text-sm">
+                        <span class="px-2 bg-white text-gray-500">Or continue with</span>
+                    </div>
+                </div>
+                
+                <!-- Social Login -->
+                <div class="grid grid-cols-2 gap-3">
+                    <button class="flex items-center justify-center py-3 px-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition">
+                        <i class="fab fa-google text-red-500 mr-2"></i>
+                        <span class="text-sm font-medium">Google</span>
+                    </button>
+                    <button class="flex items-center justify-center py-3 px-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition">
+                        <i class="fab fa-facebook text-blue-600 mr-2"></i>
+                        <span class="text-sm font-medium">Facebook</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Demo Credentials -->
+            <div class="mt-6 text-center text-sm text-gray-500">
+                <p>Demo credentials: user@ecotracker.com / password123</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main App Page (Hidden by default) -->
+    <div id="app-page" class="min-h-screen hidden">
+        <!-- Header -->
+        <header class="bg-white shadow-sm">
+            <div class="container mx-auto px-4">
+                <div class="flex items-center justify-between py-4">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
+                            <i class="fas fa-leaf text-white text-xl"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-xl font-bold text-dark">EcoTracker</h1>
+                            <p class="text-xs text-gray-500">Environmental Tracking System</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center space-x-4">
+                        <div class="hidden md:flex items-center space-x-1 text-gray-600">
+                            <i class="fas fa-user-circle"></i>
+                            <span id="user-name" class="font-medium">User</span>
+                        </div>
+                        <button id="logout-btn"
+                            class="px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-secondary transition">
+                            Logout
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+        
+        <!-- Tab Navigation -->
+        <div class="bg-white border-b">
+            <div class="container mx-auto px-4">
+                <div class="flex overflow-x-auto">
+                    <button id="tab-profile" class="tab-btn flex-shrink-0 px-6 py-4 font-medium text-primary border-b-2 border-primary">
+                        <i class="fas fa-user mr-2"></i>Profile
+                    </button>
+                    <button id="tab-models" class="tab-btn flex-shrink-0 px-6 py-4 font-medium text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-map mr-2"></i>Model Cards
+                    </button>
+                    <button id="tab-camera" class="tab-btn flex-shrink-0 px-6 py-4 font-medium text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-camera mr-2"></i>Waste Classifier
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <main class="container mx-auto px-4 py-8">
+            <!-- Profile Tab Content -->
+            <div id="content-profile" class="tab-content active">
+                <div class="max-w-4xl mx-auto">
+                    <div class="bg-white rounded-2xl shadow-lg p-6 mb-6">
+                        <div class="flex flex-col md:flex-row items-center md:items-start space-y-6 md:space-y-0 md:space-x-6">
+                            <!-- Profile Picture -->
+                            <div class="flex-shrink-0">
+                                <div class="w-32 h-32 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center">
+                                    <i class="fas fa-user text-white text-5xl"></i>
+                                </div>
+                            </div>
+                            
+                            <!-- Profile Info -->
+                            <div class="flex-grow">
+                                <div class="flex flex-col md:flex-row md:items-center justify-between mb-4">
+                                    <div>
+                                        <h2 class="text-2xl font-bold text-dark" id="profile-name">John Doe</h2>
+                                        <p class="text-gray-600" id="profile-email">user@ecotracker.com</p>
+                                    </div>
+                                    <span class="mt-2 md:mt-0 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-light text-primary">
+                                        <i class="fas fa-star mr-1"></i> Eco Warrior
+                                    </span>
+                                </div>
+                                
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                                    <div class="bg-gray-50 rounded-lg p-4">
+                                        <div class="text-sm text-gray-500 mb-1">Total Classifications</div>
+                                        <div class="text-2xl font-bold text-dark">1,247</div>
+                                    </div>
+                                    <div class="bg-gray-50 rounded-lg p-4">
+                                        <div class="text-sm text-gray-500 mb-1">Accuracy Rate</div>
+                                        <div class="text-2xl font-bold text-dark">94.5%</div>
+                                    </div>
+                                    <div class="bg-gray-50 rounded-lg p-4">
+                                        <div class="text-sm text-gray-500 mb-1">Member Since</div>
+                                        <div class="text-2xl font-bold text-dark" id="member-since">2024</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-6">
+                                    <h3 class="text-lg font-semibold text-dark mb-3">Recent Activity</h3>
+                                    <div class="space-y-3">
+                                        <div class="flex items-center p-3 bg-green-50 rounded-lg">
+                                            <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center mr-3">
+                                                <i class="fas fa-recycle text-white"></i>
+                                            </div>
+                                            <div>
+                                                <p class="font-medium text-dark">Plastic bottle classified</p>
+                                                <p class="text-sm text-gray-600">2 hours ago • 98% confidence</p>
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center p-3 bg-green-50 rounded-lg">
+                                            <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center mr-3">
+                                                <i class="fas fa-recycle text-white"></i>
+                                            </div>
+                                            <div>
+                                                <p class="font-medium text-dark">Glass jar classified</p>
+                                                <p class="text-sm text-gray-600">Yesterday • 96% confidence</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Stats Section -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-white rounded-2xl shadow-lg p-6">
+                            <h3 class="text-lg font-semibold text-dark mb-4">Waste Classification Stats</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <div class="flex justify-between mb-1">
+                                        <span class="text-sm font-medium text-dark">Plastic</span>
+                                        <span class="text-sm font-medium text-dark">42%</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-2">
+                                        <div class="bg-blue-500 h-2 rounded-full" style="width: 42%"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="flex justify-between mb-1">
+                                        <span class="text-sm font-medium text-dark">Paper</span>
+                                        <span class="text-sm font-medium text-dark">28%</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-2">
+                                        <div class="bg-green-500 h-2 rounded-full" style="width: 28%"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="flex justify-between mb-1">
+                                        <span class="text-sm font-medium text-dark">Glass</span>
+                                        <span class="text-sm font-medium text-dark">18%</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-2">
+                                        <div class="bg-yellow-500 h-2 rounded-full" style="width: 18%"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="flex justify-between mb-1">
+                                        <span class="text-sm font-medium text-dark">Metal</span>
+                                        <span class="text-sm font-medium text-dark">12%</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-2">
+                                        <div class="bg-red-500 h-2 rounded-full" style="width: 12%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white rounded-2xl shadow-lg p-6">
+                            <h3 class="text-lg font-semibold text-dark mb-4">Environmental Impact</h3>
+                            <div class="space-y-4">
+                                <div class="flex items-center">
+                                    <div class="w-12 h-12 bg-primary rounded-lg flex items-center justify-center mr-4">
+                                        <i class="fas fa-tree text-white"></i>
+                                    </div>
+                                    <div>
+                                        <p class="font-bold text-xl text-dark">127 Trees Saved</p>
+                                        <p class="text-gray-600">Equivalent to your paper recycling</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center">
+                                    <div class="w-12 h-12 bg-primary rounded-lg flex items-center justify-center mr-4">
+                                        <i class="fas fa-gas-pump text-white"></i>
+                                    </div>
+                                    <div>
+                                        <p class="font-bold text-xl text-dark">2,840 kWh</p>
+                                        <p class="text-gray-600">Energy saved from recycling</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center">
+                                    <div class="w-12 h-12 bg-primary rounded-lg flex items-center justify-center mr-4">
+                                        <i class="fas fa-tint text-white"></i>
+                                    </div>
+                                    <div>
+                                        <p class="font-bold text-xl text-dark">15,800L Water</p>
+                                        <p class="text-gray-600">Water conserved through your efforts</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Model Cards Tab Content -->
+            <div id="content-models" class="tab-content">
+                <div class="max-w-6xl mx-auto">
+                    <div class="mb-8">
+                        <h2 class="text-2xl font-bold text-dark mb-2">AI Model Cards</h2>
+                        <p class="text-gray-600">Select and manage your waste classification models</p>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Model Card 1 -->
+                        <div class="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition duration-300">
+                            <div class="p-6">
+                                <div class="flex items-center justify-between mb-4">
+                                    <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                                        <i class="fas fa-brain text-blue-600 text-xl"></i>
+                                    </div>
+                                    <span class="px-3 py-1 bg-blue-100 text-blue-600 rounded-full text-sm font-medium">
+                                        Active
+                                    </span>
+                                </div>
+                                <h3 class="text-xl font-bold text-dark mb-2">Plastic Classifier v2.1</h3>
+                                <p class="text-gray-600 mb-4">Advanced model for identifying different types of plastics with 96% accuracy</p>
+                                <div class="space-y-3 mb-6">
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-500">Accuracy</span>
+                                        <span class="font-medium text-dark">96.2%</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-500">Speed</span>
+                                        <span class="font-medium text-dark">120ms/image</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-500">Training Data</span>
+                                        <span class="font-medium text-dark">50K images</span>
+                                    </div>
+                                </div>
+                                <button class="w-full py-3 bg-primary text-white font-medium rounded-lg hover:bg-secondary transition">
+                                    Use This Model
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Model Card 2 -->
+                        <div class="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition duration-300">
+                            <div class="p-6">
+                                <div class="flex items-center justify-between mb-4">
+                                    <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                                        <i class="fas fa-leaf text-green-600 text-xl"></i>
+                                    </div>
+                                    <span class="px-3 py-1 bg-green-100 text-green-600 rounded-full text-sm font-medium">
+                                        Recommended
+                                    </span>
+                                </div>
+                                <h3 class="text-xl font-bold text-dark mb-2">Organic Waste Detector</h3>
+                                <p class="text-gray-600 mb-4">Specialized model for identifying compostable organic materials</p>
+                                <div class="space-y-3 mb-6">
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-500">Accuracy</span>
+                                        <span class="font-medium text-dark">94.8%</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-500">Speed</span>
+                                        <span class="font-medium text-dark">95ms/image</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-500">Training Data</span>
+                                        <span class="font-medium text-dark">35K images</span>
+                                    </div>
+                                </div>
+                                <button class="w-full py-3 bg-primary text-white font-medium rounded-lg hover:bg-secondary transition">
+                                    Use This Model
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Model Card 3 -->
+                        <div class="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition duration-300">
+                            <div class="p-6">
+                                <div class="flex items-center justify-between mb-4">
+                                    <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                                        <i class="fas fa-recycle text-purple-600 text-xl"></i>
+                                    </div>
+                                    <span class="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm font-medium">
+                                        Beta
+                                    </span>
+                                </div>
+                                <h3 class="text-xl font-bold text-dark mb-2">Multi-Material Classifier</h3>
+                                <p class="text-gray-600 mb-4">General purpose model for all waste types with real-time processing</p>
+                                <div class="space-y-3 mb-6">
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-500">Accuracy</span>
+                                        <span class="font-medium text-dark">92.1%</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-500">Speed</span>
+                                        <span class="font-medium text-dark">65ms/image</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-500">Training Data</span>
+                                        <span class="font-medium text-dark">100K images</span>
+                                    </div>
+                                </div>
+                                <button class="w-full py-3 bg-gray-100 text-dark font-medium rounded-lg hover:bg-gray-200 transition">
+                                    Try Beta Version
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Upload Model Section -->
+                    <div class="mt-8 bg-white rounded-2xl shadow-lg p-6">
+                        <h3 class="text-xl font-bold text-dark mb-4">Upload Your Own Model</h3>
+                        <div class="border-2 border-dashed border-gray-300 rounded-2xl p-8 text-center">
+                            <div class="w-16 h-16 bg-light rounded-full flex items-center justify-center mx-auto mb-4">
+                                <i class="fas fa-cloud-upload-alt text-primary text-2xl"></i>
+                            </div>
+                            <h4 class="text-lg font-medium text-dark mb-2">Drag & drop your model files</h4>
+                            <p class="text-gray-600 mb-4">Supported formats: .h5, .pb, .tflite, .pth</p>
+                            <input type="file" id="model-upload" class="hidden" accept=".h5,.pb,.tflite,.pth">
+                            <label for="model-upload" class="inline-block px-6 py-3 bg-primary text-white font-medium rounded-lg hover:bg-secondary transition cursor-pointer">
+                                Browse Files
+                            </label>
+                            <p class="text-sm text-gray-500 mt-4">Maximum file size: 500MB</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Camera Tab Content -->
+            <div id="content-camera" class="tab-content">
+                <div class="max-w-6xl mx-auto">
+                    <div class="mb-8">
+                        <h2 class="text-2xl font-bold text-dark mb-2">Waste Classification Camera</h2>
+                        <p class="text-gray-600">Use your camera to classify waste materials in real-time</p>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Camera Section -->
+                        <div class="lg:col-span-2">
+                            <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+                                <div class="p-6 border-b">
+                                    <div class="flex items-center justify-between">
+                                        <h3 class="text-lg font-semibold text-dark">Camera Feed</h3>
+                                        <div class="flex items-center space-x-2">
+                                            <div id="camera-status" class="flex items-center">
+                                                <div class="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
+                                                <span class="text-sm text-gray-600">Camera Off</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="p-4">
+                                    <div id="camera-container" class="camera-container bg-black rounded-xl aspect-video flex items-center justify-center">
+                                        <div id="camera-placeholder" class="text-center">
+                                            <div class="w-20 h-20 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                                                <i class="fas fa-camera text-white text-3xl"></i>
+                                            </div>
+                                            <p class="text-white mb-4">Camera access required for waste classification</p>
+                                            <button id="start-camera-btn" class="px-6 py-3 bg-primary text-white font-medium rounded-lg hover:bg-secondary transition pulse-animation">
+                                                <i class="fas fa-video mr-2"></i>Start Camera
+                                            </button>
+                                        </div>
+                                        <video id="camera-feed" class="camera-feed w-full h-full hidden" autoplay playsinline></video>
+                                        <canvas id="camera-canvas" class="absolute top-0 left-0 w-full h-full hidden"></canvas>
+                                    </div>
+                                    
+                                    <div class="mt-6 grid grid-cols-2 gap-4">
+                                        <button id="capture-btn" class="py-3 bg-primary text-white font-medium rounded-lg hover:bg-secondary transition hidden">
+                                            <i class="fas fa-camera-retro mr-2"></i>Capture Image
+                                        </button>
+                                        <button id="stop-camera-btn" class="py-3 bg-gray-200 text-dark font-medium rounded-lg hover:bg-gray-300 transition hidden">
+                                            <i class="fas fa-stop mr-2"></i>Stop Camera
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Classification Results -->
+                        <div>
+                            <div class="bg-white rounded-2xl shadow-lg p-6">
+                                <h3 class="text-lg font-semibold text-dark mb-4">Classification Results</h3>
+                                
+                                <div id="results-placeholder" class="text-center py-8">
+                                    <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <i class="fas fa-search text-gray-400 text-2xl"></i>
+                                    </div>
+                                    <p class="text-gray-500">No classification results yet</p>
+                                    <p class="text-sm text-gray-400 mt-2">Start camera and capture waste to see results</p>
+                                </div>
+                                
+                                <div id="results-container" class="hidden">
+                                    <div class="mb-6">
+                                        <div class="flex items-center justify-between mb-2">
+                                            <span class="font-medium text-dark">Detected Material</span>
+                                            <span class="text-sm font-medium text-primary">98% Confidence</span>
+                                        </div>
+                                        <div class="w-full bg-gray-200 rounded-full h-2">
+                                            <div class="bg-primary h-2 rounded-full" style="width: 98%"></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="space-y-4">
+                                        <div class="p-4 bg-green-50 rounded-lg">
+                                            <div class="flex items-center">
+                                                <div class="w-10 h-10 bg-primary rounded-lg flex items-center justify-center mr-3">
+                                                    <i class="fas fa-recycle text-white"></i>
+                                                </div>
+                                                <div>
+                                                    <p class="font-bold text-dark">Plastic Bottle</p>
+                                                    <p class="text-sm text-gray-600">Recyclable - Category 1</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="p-4 bg-blue-50 rounded-lg">
+                                            <h4 class="font-medium text-dark mb-2">Disposal Instructions</h4>
+                                            <ul class="text-sm text-gray-600 space-y-1">
+                                                <li class="flex items-center">
+                                                    <i class="fas fa-check-circle text-primary mr-2"></i>
+                                                    Remove cap and label
+                                                </li>
+                                                <li class="flex items-center">
+                                                    <i class="fas fa-check-circle text-primary mr-2"></i>
+                                                    Rinse if necessary
+                                                </li>
+                                                <li class="flex items-center">
+                                                    <i class="fas fa-check-circle text-primary mr-2"></i>
+                                                    Place in recycling bin
+                                                </li>
+                                            </ul>
+                                        </div>
+                                        
+                                        <div class="p-4 bg-yellow-50 rounded-lg">
+                                            <h4 class="font-medium text-dark mb-2">Environmental Impact</h4>
+                                            <div class="grid grid-cols-2 gap-2">
+                                                <div class="text-center">
+                                                    <p class="text-2xl font-bold text-dark">450</p>
+                                                    <p class="text-xs text-gray-600">Years to decompose</p>
+                                                </div>
+                                                <div class="text-center">
+                                                    <p class="text-2xl font-bold text-dark">88%</p>
+                                                    <p class="text-xs text-gray-600">Recycling rate</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <button class="w-full mt-6 py-3 bg-primary text-white font-medium rounded-lg hover:bg-secondary transition">
+                                        <i class="fas fa-save mr-2"></i>Save Classification
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Quick Actions -->
+                            <div class="mt-6 bg-white rounded-2xl shadow-lg p-6">
+                                <h3 class="text-lg font-semibold text-dark mb-4">Quick Actions</h3>
+                                <div class="space-y-3">
+                                    <button class="w-full flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+                                        <div class="flex items-center">
+                                            <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                                                <i class="fas fa-history text-blue-600"></i>
+                                            </div>
+                                            <span class="font-medium text-dark">View History</span>
+                                        </div>
+                                        <i class="fas fa-chevron-right text-gray-400"></i>
+                                    </button>
+                                    <button class="w-full flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+                                        <div class="flex items-center">
+                                            <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mr-3">
+                                                <i class="fas fa-chart-bar text-green-600"></i>
+                                            </div>
+                                            <span class="font-medium text-dark">Statistics</span>
+                                        </div>
+                                        <i class="fas fa-chevron-right text-gray-400"></i>
+                                    </button>
+                                    <button class="w-full flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+                                        <div class="flex items-center">
+                                            <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
+                                                <i class="fas fa-cog text-purple-600"></i>
+                                            </div>
+                                            <span class="font-medium text-dark">Settings</span>
+                                        </div>
+                                        <i class="fas fa-chevron-right text-gray-400"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <!-- Footer -->
+        <footer class="bg-white border-t mt-12">
+            <div class="container mx-auto px-4 py-8">
+                <div class="flex flex-col md:flex-row justify-between items-center">
+                    <div class="mb-4 md:mb-0">
+                        <div class="flex items-center space-x-2">
+                            <div class="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+                                <i class="fas fa-leaf text-white"></i>
+                            </div>
+                            <span class="text-xl font-bold text-dark">EcoTracker</span>
+                        </div>
+                        <p class="text-gray-600 mt-2">Making waste classification accessible to everyone</p>
+                    </div>
+                    
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-gray-600 hover:text-primary">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="#" class="text-gray-600 hover:text-primary">
+                            <i class="fab fa-facebook"></i>
+                        </a>
+                        <a href="#" class="text-gray-600 hover:text-primary">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                        <a href="#" class="text-gray-600 hover:text-primary">
+                            <i class="fab fa-linkedin"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="mt-8 pt-8 border-t text-center text-gray-500 text-sm">
+                    <p>© 2024 EcoTracker. All rights reserved. | <a href="#" class="text-primary hover:text-dark">Privacy Policy</a> | <a href="#" class="text-primary hover:text-dark">Terms of Service</a></p>
+                </div>
+            </div>
+        </footer>
+    </div>
+    
+    <script>
+        // Application State
+        const appState = {
+            currentUser: null,
+            isAuthenticated: false,
+            activeTab: 'profile',
+            cameraStream: null,
+            isCameraActive: false
+        };
+        
+        // Demo user data
+        const demoUser = {
+            "name": "John Doe",
+            "email": "user@ecotracker.com",
+            "memberSince": "2024",
+            "stats": {
+                "totalClassifications": 1247,
+                "accuracyRate": 94.5,
+                "plasticPercentage": 42,
+                "paperPercentage": 28,
+                "glassPercentage": 18,
+                "metalPercentage": 12
+            }
+        };
+        
+        // DOM Elements
+        const authPage = document.getElementById('auth-page');
+        const appPage = document.getElementById('app-page');
+        const loginForm = document.getElementById('login-form');
+        const registerForm = document.getElementById('register-form');
+        const loginTab = document.getElementById('login-tab');
+        const registerTab = document.getElementById('register-tab');
+        const logoutBtn = document.getElementById('logout-btn');
+        
+        // Tab elements
+        const tabButtons = document.querySelectorAll('.tab-btn');
+        const tabContents = document.querySelectorAll('.tab-content');
+        
+        // Profile elements
+        const profileName = document.getElementById('profile-name');
+        const profileEmail = document.getElementById('profile-email');
+        const memberSince = document.getElementById('member-since');
+        const userName = document.getElementById('user-name');
+        
+        // Camera elements
+        const startCameraBtn = document.getElementById('start-camera-btn');
+        const stopCameraBtn = document.getElementById('stop-camera-btn');
+        const captureBtn = document.getElementById('capture-btn');
+        const cameraFeed = document.getElementById('camera-feed');
+        const cameraCanvas = document.getElementById('camera-canvas');
+        const cameraPlaceholder = document.getElementById('camera-placeholder');
+        const cameraStatus = document.getElementById('camera-status');
+        const resultsPlaceholder = document.getElementById('results-placeholder');
+        const resultsContainer = document.getElementById('results-container');
+        
+        // Initialize application
+        function initApp() {
+            // Check if user is already logged in (from localStorage)
+            const savedUser = localStorage.getItem('ecotracker_user');
+            if (savedUser) {
+                appState.currentUser = JSON.parse(savedUser);
+                appState.isAuthenticated = true;
+                showAppPage();
+            }
+            
+            setupEventListeners();
+        }
+        
+        // Setup all event listeners
+        function setupEventListeners() {
+            // Auth form toggle
+            loginTab.addEventListener('click', () => switchAuthForm('login'));
+            registerTab.addEventListener('click', () => switchAuthForm('register'));
+            
+            // Form submissions
+            loginForm.addEventListener('submit', handleLogin);
+            registerForm.addEventListener('submit', handleRegister);
+            
+            // Logout
+            logoutBtn.addEventListener('click', handleLogout);
+            
+            // Tab navigation
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const tabId = button.id.replace('tab-', '');
+                    switchTab(tabId);
+                });
+            });
+            
+            // Camera controls
+            startCameraBtn.addEventListener('click', startCamera);
+            stopCameraBtn.addEventListener('click', stopCamera);
+            captureBtn.addEventListener('click', captureImage);
+            
+            // Model upload
+            const modelUpload = document.getElementById('model-upload');
+            if (modelUpload) {
+                modelUpload.addEventListener('change', handleModelUpload);
+            }
+        }
+        
+        // Switch between login and register forms
+        function switchAuthForm(formType) {
+            if (formType === 'login') {
+                loginForm.classList.remove('hidden');
+                registerForm.classList.add('hidden');
+                loginTab.classList.add('border-primary', 'text-primary');
+                loginTab.classList.remove('text-gray-500');
+                registerTab.classList.remove('border-primary', 'text-primary');
+                registerTab.classList.add('text-gray-500');
+            } else {
+                loginForm.classList.add('hidden');
+                registerForm.classList.remove('hidden');
+                registerTab.classList.add('border-primary', 'text-primary');
+                registerTab.classList.remove('text-gray-500');
+                loginTab.classList.remove('border-primary', 'text-primary');
+                loginTab.classList.add('text-gray-500');
+            }
+        }
+        
+        // Handle login
+        function handleLogin(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            
+            // Demo authentication
+            if (email === 'user@ecotracker.com' && password === 'password123') {
+                appState.currentUser = demoUser;
+                appState.isAuthenticated = true;
+                
+                // Save to localStorage
+                localStorage.setItem('ecotracker_user', JSON.stringify(demoUser));
+                
+                showAppPage();
+                showNotification('Login successful! Welcome back to EcoTracker.', 'success');
+            } else {
+                showNotification('Invalid credentials. Please try again.', 'error');
+            }
+        }
+        
+        // Handle registration
+        function handleRegister(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('register-name').value;
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+            const confirmPassword = document.getElementById('register-confirm-password').value;
+            
+            // Validation
+            if (password !== confirmPassword) {
+                showNotification('Passwords do not match.', 'error');
+                return;
+            }
+            
+            if (password.length < 6) {
+                showNotification('Password must be at least 6 characters.', 'error');
+                return;
+            }
+            
+            // Create new user
+            const newUser = {
+                "name": name,
+                "email": email,
+                "memberSince": new Date().getFullYear().toString(),
+                "stats": {
+                    "totalClassifications": 0,
+                    "accuracyRate": 0,
+                    "plasticPercentage": 0,
+                    "paperPercentage": 0,
+                    "glassPercentage": 0,
+                    "metalPercentage": 0
+                }
+            };
+            
+            appState.currentUser = newUser;
+            appState.isAuthenticated = true;
+            
+            // Save to localStorage
+            localStorage.setItem('ecotracker_user', JSON.stringify(newUser));
+            
+            showAppPage();
+            showNotification('Registration successful! Welcome to EcoTracker.', 'success');
+        }
+        
+        // Handle logout
+        function handleLogout() {
+            appState.currentUser = null;
+            appState.isAuthenticated = false;
+            localStorage.removeItem('ecotracker_user');
+            
+            // Stop camera if active
+            if (appState.isCameraActive) {
+                stopCamera();
+            }
+            
+            showAuthPage();
+            showNotification('You have been logged out.', 'info');
+            
+            // Reset forms
+            loginForm.reset();
+            registerForm.reset();
+            switchAuthForm('login');
+        }
+        
+        // Switch between tabs
+        function switchTab(tabId) {
+            // Update active tab button
+            tabButtons.forEach(button => {
+                if (button.id === `tab-${tabId}`) {
+                    button.classList.add('border-primary', 'text-primary');
+                    button.classList.remove('text-gray-500', 'hover:text-gray-700');
+                } else {
+                    button.classList.remove('border-primary', 'text-primary');
+                    button.classList.add('text-gray-500', 'hover:text-gray-700');
+                }
+            });
+            
+            // Update active tab content
+            tabContents.forEach(content => {
+                if (content.id === `content-${tabId}`) {
+                    content.classList.add('active');
+                } else {
+                    content.classList.remove('active');
+                }
+            });
+            
+            appState.activeTab = tabId;
+            
+            // Stop camera if switching away from camera tab
+            if (tabId !== 'camera' && appState.isCameraActive) {
+                stopCamera();
+            }
+        }
+        
+        // Start camera
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: 'environment',
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    }
+                });
+                
+                appState.cameraStream = stream;
+                appState.isCameraActive = true;
+                
+                // Show camera feed
+                cameraFeed.srcObject = stream;
+                cameraFeed.classList.remove('hidden');
+                cameraPlaceholder.classList.add('hidden');
+                startCameraBtn.classList.add('hidden');
+                captureBtn.classList.remove('hidden');
+                stopCameraBtn.classList.remove('hidden');
+                
+                // Update status
+                cameraStatus.innerHTML = `
+                    <div class="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+                    <span class="text-sm text-gray-600">Camera Active</span>
+                `;
+                
+                showNotification('Camera started successfully. You can now capture waste images.', 'success');
+            } catch (error) {
+                console.error('Error accessing camera:', error);
+                showNotification('Failed to access camera. Please check permissions.', 'error');
+            }
+        }
+        
+        // Stop camera
+        function stopCamera() {
+            if (appState.cameraStream) {
+                const tracks = appState.cameraStream.getTracks();
+                tracks.forEach(track => track.stop());
+                appState.cameraStream = null;
+            }
+            
+            appState.isCameraActive = false;
+            
+            // Hide camera feed
+            cameraFeed.classList.add('hidden');
+            cameraPlaceholder.classList.remove('hidden');
+            startCameraBtn.classList.remove('hidden');
+            captureBtn.classList.add('hidden');
+            stopCameraBtn.classList.add('hidden');
+            
+            // Update status
+            cameraStatus.innerHTML = `
+                <div class="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
+                <span class="text-sm text-gray-600">Camera Off</span>
+            `;
+            
+            // Hide results
+            resultsPlaceholder.classList.remove('hidden');
+            resultsContainer.classList.add('hidden');
+        }
+        
+        // Capture image from camera
+        function captureImage() {
+            if (!appState.isCameraActive) return;
+            
+            const context = cameraCanvas.getContext('2d');
+            cameraCanvas.width = cameraFeed.videoWidth;
+            cameraCanvas.height = cameraFeed.videoHeight;
+            context.drawImage(cameraFeed, 0, 0, cameraFeed.videoWidth, cameraFeed.videoHeight);
+            
+            // Show classification results
+            resultsPlaceholder.classList.add('hidden');
+            resultsContainer.classList.remove('hidden');
+            
+            // Simulate classification (in a real app, this would call an API)
+            simulateClassification();
+            
+            showNotification('Image captured! Classification results displayed.', 'success');
+        }
+        
+        // Simulate waste classification
+        function simulateClassification() {
+            // In a real application, this would be an API call to your ML model
+            // For demo purposes, we're simulating the response
+            
+            const wasteTypes = [
+                { "name": "Plastic Bottle", "confidence": 98, "category": "Recyclable", "color": "bg-blue-50" },
+                { "name": "Glass Jar", "confidence": 95, "category": "Recyclable", "color": "bg-green-50" },
+                { "name": "Paper Box", "confidence": 92, "category": "Recyclable", "color": "bg-yellow-50" },
+                { "name": "Metal Can", "confidence": 89, "category": "Recyclable", "color": "bg-gray-50" },
+                { "name": "Food Waste", "confidence": 96, "category": "Compostable", "color": "bg-brown-50" }
+            ];
+            
+            const randomWaste = wasteTypes[Math.floor(Math.random() * wasteTypes.length)];
+            
+            // Update UI with simulated results
+            const confidenceElement = resultsContainer.querySelector('.text-primary');
+            const materialElement = resultsContainer.querySelector('.font-bold.text-dark');
+            const categoryElement = resultsContainer.querySelector('.text-sm.text-gray-600');
+            const progressBar = resultsContainer.querySelector('.bg-primary');
+            
+            if (confidenceElement) confidenceElement.textContent = `${randomWaste.confidence}% Confidence`;
+            if (materialElement) materialElement.textContent = randomWaste.name;
+            if (categoryElement) categoryElement.textContent = `${randomWaste.category} - Category 1`;
+            if (progressBar) progressBar.style.width = `${randomWaste.confidence}%`;
+            
+            // Update the main result container color
+            const resultBox = resultsContainer.querySelector('.bg-green-50');
+            if (resultBox) {
+                resultBox.className = `p-4 ${randomWaste.color} rounded-lg`;
+            }
+        }
+        
+        // Handle model upload
+        function handleModelUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const validExtensions = ['.h5', '.pb', '.tflite', '.pth'];
+            const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
+            
+            if (!validExtensions.includes(fileExtension)) {
+                showNotification('Invalid file type. Please upload .h5, .pb, .tflite, or .pth files.', 'error');
+                return;
+            }
+            
+            if (file.size > 500 * 1024 * 1024) { // 500MB
+                showNotification('File size exceeds 500MB limit.', 'error');
+                return;
+            }
+            
+            showNotification(`Model "${file.name}" uploaded successfully. Processing...`, 'success');
+            
+            // In a real app, you would upload to server here
+            setTimeout(() => {
+                showNotification('Model processed and ready for use!', 'success');
+            }, 2000);
+        }
+        
+        // Show notification
+        function showNotification(message, type) {
+            // Remove existing notification
+            const existingNotification = document.querySelector('.notification');
+            if (existingNotification) {
+                existingNotification.remove();
+            }
+            
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = `notification fixed top-4 right-4 px-6 py-4 rounded-lg shadow-lg z-50 transform transition-transform duration-300 ${
+                type === 'success' ? 'bg-green-100 text-green-800 border border-green-200' :
+                type === 'error' ? 'bg-red-100 text-red-800 border border-red-200' :
+                'bg-blue-100 text-blue-800 border border-blue-200'
+            }`;
+            notification.innerHTML = `
+                <div class="flex items-center">
+                    <i class="fas ${
+                        type === 'success' ? 'fa-check-circle' :
+                        type === 'error' ? 'fa-exclamation-circle' :
+                        'fa-info-circle'
+                    } mr-3"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                notification.style.transform = 'translateX(100%)';
+                setTimeout(() => notification.remove(), 300);
+            }, 5000);
+        }
+        
+        // Show auth page
+        function showAuthPage() {
+            authPage.classList.remove('hidden');
+            appPage.classList.add('hidden');
+        }
+        
+        // Show app page
+        function showAppPage() {
+            authPage.classList.add('hidden');
+            appPage.classList.remove('hidden');
+            
+            // Update user info
+            if (appState.currentUser) {
+                profileName.textContent = appState.currentUser.name;
+                profileEmail.textContent = appState.currentUser.email;
+                userName.textContent = appState.currentUser.name.split(' ')[0]; // First name only
+                memberSince.textContent = appState.currentUser.memberSince;
+                
+                // Update stats (in a real app, these would come from backend)
+                const totalEl = document.querySelector('.text-2xl.font-bold.text-dark:nth-child(2)');
+                const accuracyEl = document.querySelector('.text-2xl.font-bold.text-dark:nth-child(4)');
+                const plasticBar = document.querySelector('.bg-blue-500');
+                const paperBar = document.querySelector('.bg-green-500');
+                const glassBar = document.querySelector('.bg-yellow-500');
+                const metalBar = document.querySelector('.bg-red-500');
+                
+                if (totalEl) totalEl.textContent = appState.currentUser.stats.totalClassifications.toLocaleString();
+                if (accuracyEl) accuracyEl.textContent = `${appState.currentUser.stats.accuracyRate}%`;
+                if (plasticBar) plasticBar.style.width = `${appState.currentUser.stats.plasticPercentage}%`;
+                if (paperBar) paperBar.style.width = `${appState.currentUser.stats.paperPercentage}%`;
+                if (glassBar) glassBar.style.width = `${appState.currentUser.stats.glassPercentage}%`;
+                if (metalBar) metalBar.style.width = `${appState.currentUser.stats.metalPercentage}%`;
+            }
+            
+            // Set active tab
+            switchTab('profile');
+        }
+        
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>
