@@ -1,0 +1,1402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <base target="_self">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Qyzylorda Trash Container Locations | Integrated Waste Management System</title>
+    <meta name="description" content="Integrated trash container monitoring system for Qyzylorda city with real-time data and external system integration.">
+    <meta name="keywords" content="Qyzylorda, trash containers, waste management, integration, city map, 2GIS API">
+    <meta name="author" content="Qyzylorda City Waste Management">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="https://picsum.photos/32?random=3">
+    <link rel="apple-touch-icon" href="https://picsum.photos/180?random=4">
+    
+    <!-- Open Graph Meta Tags for Integration -->
+    <meta property="og:title" content="Qyzylorda Trash Container Monitoring System">
+    <meta property="og:description" content="Real-time monitoring of trash container locations across Qyzylorda city">
+    <meta property="og:image" content="https://picsum.photos/1200/630?random=5">
+    <meta property="og:url" content="https://waste.qyzylorda.gov.kz">
+    <meta property="og:type" content="website">
+    
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Qyzylorda Trash Container Map",
+        "description": "Interactive map showing trash container locations in Qyzylorda city",
+        "url": "https://waste.qyzylorda.gov.kz",
+        "applicationCategory": "UtilityApplication",
+        "operatingSystem": "Any",
+        "author": {
+            "@type": "Organization",
+            "name": "Qyzylorda City Administration"
+        }
+    }
+    </script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    
+    <!-- 2GIS Map API -->
+    <script src="https://maps.api.2gis.ru/2.0/loader.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#1e40af",
+                        secondary: "#3b82f6",
+                        accent: "#f59e0b",
+                        success: "#10b981",
+                        warning: "#f59e0b",
+                        danger: "#ef4444",
+                        dark: "#1f2937",
+                        light: "#f8fafc",
+                        qyzylorda: {
+                            50: "#eff6ff",
+                            100: "#dbeafe",
+                            200: "#bfdbfe",
+                            300: "#93c5fd",
+                            400: "#60a5fa",
+                            500: "#3b82f6",
+                            600: "#2563eb",
+                            700: "#1d4ed8",
+                            800: "#1e40af",
+                            900: "#1e3a8a"
+                        }
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                        'mono': ['JetBrains Mono', 'monospace']
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s infinite',
+                        'bounce-slow': 'bounce 2s infinite',
+                        'fade-in': 'fadeIn 0.5s ease-in'
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .map-container {
+            height: calc(100vh - 200px);
+            min-height: 500px;
+        }
+        
+        .marker-popup {
+            padding: 12px;
+            border-radius: 8px;
+            background: white;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            min-width: 220px;
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        .trash-icon {
+            background-color: #10b981;
+            border-radius: 50%;
+            padding: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        
+        .trash-icon:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+        
+        .integration-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .integration-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        @media (max-width: 768px) {
+            .map-container {
+                height: 400px;
+            }
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
+    <!-- Integration Notification -->
+    <div id="notification" class="notification hidden">
+        <div class="bg-green-500 text-white px-6 py-4 rounded-lg shadow-lg flex items-center justify-between min-w-[300px]">
+            <div class="flex items-center">
+                <i class="fas fa-check-circle text-xl mr-3"></i>
+                <span id="notificationMessage">Integration successful!</span>
+            </div>
+            <button onclick="closeNotification()" class="ml-4 text-white hover:text-gray-200">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Header Section -->
+    <header class="bg-white shadow-md sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <!-- Logo and Title -->
+                <div class="flex items-center space-x-4 mb-4 md:mb-0">
+                    <div class="trash-icon">
+                        <i class="fas fa-recycle text-white text-2xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-800">Qyzylorda Waste Management</h1>
+                        <p class="text-gray-600 text-sm">Integrated Monitoring System</p>
+                    </div>
+                </div>
+                
+                <!-- Navigation -->
+                <nav class="flex flex-wrap gap-4 md:gap-6">
+                    <a href="#" class="text-gray-700 hover:text-qyzylorda-700 font-medium transition-colors duration-300 flex items-center" onclick="handleNavigation(event, 'map')">
+                        <i class="fas fa-map-marked-alt mr-2"></i>Map
+                    </a>
+                    <a href="#" class="text-gray-700 hover:text-qyzylorda-700 font-medium transition-colors duration-300 flex items-center" onclick="handleNavigation(event, 'integration')">
+                        <i class="fas fa-link mr-2"></i>Integration
+                    </a>
+                    <a href="#" class="text-gray-700 hover:text-qyzylorda-700 font-medium transition-colors duration-300 flex items-center" onclick="handleNavigation(event, 'reports')">
+                        <i class="fas fa-chart-line mr-2"></i>Reports
+                    </a>
+                    <a href="#" class="text-gray-700 hover:text-qyzylorda-700 font-medium transition-colors duration-300 flex items-center" onclick="handleNavigation(event, 'api')">
+                        <i class="fas fa-code mr-2"></i>API
+                    </a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <!-- Page Header -->
+        <div class="mb-8 text-center">
+            <div class="inline-flex items-center bg-qyzylorda-50 text-qyzylorda-800 px-4 py-2 rounded-full mb-4">
+                <i class="fas fa-sync-alt mr-2"></i>
+                <span class="text-sm font-medium">Real-time Integrated System</span>
+            </div>
+            <h2 class="text-3xl font-bold text-gray-800 mb-2">Trash Container Monitoring - Qyzylorda</h2>
+            <p class="text-gray-600 max-w-3xl mx-auto">
+                Integrated monitoring system showing all trash container locations across Qyzylorda city. 
+                Connected with municipal waste management systems for real-time data synchronization.
+            </p>
+        </div>
+        
+        <!-- Integration Status Banner -->
+        <div class="integration-card mb-8">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div>
+                    <h3 class="text-xl font-bold mb-2">
+                        <i class="fas fa-plug mr-2"></i>System Integration Active
+                    </h3>
+                    <p class="text-white/90">
+                        Connected to Qyzylorda Municipal Systems • Real-time data synchronization • API endpoints available
+                    </p>
+                </div>
+                <div class="mt-4 md:mt-0">
+                    <button onclick="testIntegration()" class="bg-white text-qyzylorda-700 hover:bg-gray-100 font-medium py-2 px-6 rounded-lg transition-colors duration-300 flex items-center">
+                        <i class="fas fa-bolt mr-2"></i>Test Connection
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Stats Overview -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <div class="bg-white rounded-lg shadow p-6 text-center border-l-4 border-qyzylorda-500">
+                <div class="text-3xl font-bold text-qyzylorda-700 mb-2" id="totalContainers">0</div>
+                <p class="text-gray-600">Total Containers</p>
+                <div class="mt-3">
+                    <i class="fas fa-trash-alt text-qyzylorda-400 text-xl"></i>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6 text-center border-l-4 border-green-500">
+                <div class="text-3xl font-bold text-green-600 mb-2" id="activeContainers">0</div>
+                <p class="text-gray-600">Active Containers</p>
+                <div class="mt-3">
+                    <i class="fas fa-check-circle text-green-400 text-xl"></i>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6 text-center border-l-4 border-yellow-500">
+                <div class="text-3xl font-bold text-yellow-600 mb-2" id="connectedSystems">2</div>
+                <p class="text-gray-600">Connected Systems</p>
+                <div class="mt-3">
+                    <i class="fas fa-network-wired text-yellow-400 text-xl"></i>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6 text-center border-l-4 border-purple-500">
+                <div class="text-3xl font-bold text-purple-600 mb-2" id="lastUpdated">Now</div>
+                <p class="text-gray-600">Last Sync</p>
+                <div class="mt-3">
+                    <i class="fas fa-sync-alt text-purple-400 text-xl animate-spin"></i>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Map Container -->
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden mb-8" id="mapSection">
+            <div class="p-4 border-b border-gray-200 flex flex-col md:flex-row justify-between items-center">
+                <h3 class="text-xl font-semibold text-gray-800 mb-2 md:mb-0">
+                    <i class="fas fa-map-marked-alt text-qyzylorda-600 mr-2"></i>Interactive Qyzylorda Map
+                </h3>
+                <div class="flex space-x-2">
+                    <button onclick="zoomIn()" class="bg-gray-100 hover:bg-gray-200 p-2 rounded-lg transition-colors duration-300" title="Zoom In">
+                        <i class="fas fa-search-plus"></i>
+                    </button>
+                    <button onclick="zoomOut()" class="bg-gray-100 hover:bg-gray-200 p-2 rounded-lg transition-colors duration-300" title="Zoom Out">
+                        <i class="fas fa-search-minus"></i>
+                    </button>
+                    <button onclick="centerMap()" class="bg-qyzylorda-600 text-white hover:bg-qyzylorda-700 px-4 py-2 rounded-lg transition-colors duration-300 flex items-center">
+                        <i class="fas fa-crosshairs mr-2"></i>Center
+                    </button>
+                    <button onclick="exportMapData()" class="bg-green-600 text-white hover:bg-green-700 px-4 py-2 rounded-lg transition-colors duration-300 flex items-center">
+                        <i class="fas fa-download mr-2"></i>Export
+                    </button>
+                </div>
+            </div>
+            <div id="map" class="map-container"></div>
+        </div>
+        
+        <!-- Integration Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8" id="integrationSection">
+            <!-- Connected Systems -->
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-network-wired text-qyzylorda-600 mr-2"></i>Connected Systems
+                </h3>
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors duration-300">
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-4">
+                                <i class="fas fa-city text-green-600"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-medium text-gray-800">Qyzylorda Municipal DB</h4>
+                                <p class="text-sm text-gray-600">Primary database system</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+                            <span class="text-sm text-green-600 font-medium">Connected</span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors duration-300">
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
+                                <i class="fas fa-truck-loading text-blue-600"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-medium text-gray-800">Collection Fleet System</h4>
+                                <p class="text-sm text-gray-600">Waste collection vehicles</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+                            <span class="text-sm text-green-600 font-medium">Connected</span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors duration-300">
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center mr-4">
+                                <i class="fas fa-mobile-alt text-purple-600"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-medium text-gray-800">Citizen App</h4>
+                                <p class="text-sm text-gray-600">Public reporting system</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 bg-yellow-500 rounded-full mr-2"></div>
+                            <span class="text-sm text-yellow-600 font-medium">Pending</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-6">
+                    <button onclick="syncAllSystems()" class="w-full bg-qyzylorda-600 text-white hover:bg-qyzylorda-700 font-medium py-3 px-4 rounded-lg transition-colors duration-300 flex items-center justify-center">
+                        <i class="fas fa-sync-alt mr-2"></i>Synchronize All Systems
+                    </button>
+                </div>
+            </div>
+            
+            <!-- API Integration -->
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-code text-qyzylorda-600 mr-2"></i>API Integration
+                </h3>
+                <div class="space-y-4">
+                    <div class="p-4 bg-gray-50 rounded-lg">
+                        <h4 class="font-medium text-gray-800 mb-2">API Endpoints</h4>
+                        <div class="space-y-2">
+                            <div class="flex items-center justify-between">
+                                <code class="text-sm bg-gray-800 text-gray-100 px-2 py-1 rounded">GET /api/containers</code>
+                                <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Live</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <code class="text-sm bg-gray-800 text-gray-100 px-2 py-1 rounded">POST /api/reports</code>
+                                <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Live</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <code class="text-sm bg-gray-800 text-gray-100 px-2 py-1 rounded">GET /api/stats</code>
+                                <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Live</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="p-4 bg-gray-50 rounded-lg">
+                        <h4 class="font-medium text-gray-800 mb-2">Integration Code</h4>
+                        <pre class="text-xs bg-gray-800 text-gray-100 p-3 rounded overflow-x-auto">
+// Example: Fetch containers data
+fetch('https://waste.qyzylorda.gov.kz/api/containers')
+  .then(response => response.json())
+  .then(data => console.log(data));
+
+// Example: Report an issue
+fetch('https://waste.qyzylorda.gov.kz/api/reports', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    containerId: 'TC-001',
+    issue: 'Container is full',
+    location: { lat: 44.8480, lon: 65.5000 }
+  })
+});</pre>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <button onclick="showAPIDocs()" class="w-full bg-gray-800 text-white hover:bg-gray-900 font-medium py-3 px-4 rounded-lg transition-colors duration-300">
+                            <i class="fas fa-book mr-2"></i>View API Documentation
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Container List -->
+        <div class="bg-white rounded-xl shadow-lg p-6" id="reportsSection">
+            <div class="flex flex-col md:flex-row justify-between items-center mb-6">
+                <h3 class="text-xl font-semibold text-gray-800">
+                    <i class="fas fa-list-ul text-qyzylorda-600 mr-2"></i>Container Monitoring
+                </h3>
+                <div class="mt-4 md:mt-0 flex space-x-2">
+                    <button onclick="refreshData()" class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors duration-300 flex items-center">
+                        <i class="fas fa-redo mr-2"></i>Refresh
+                    </button>
+                    <button onclick="exportData()" class="bg-qyzylorda-600 text-white hover:bg-qyzylorda-700 font-medium py-2 px-4 rounded-lg transition-colors duration-300 flex items-center">
+                        <i class="fas fa-file-export mr-2"></i>Export CSV
+                    </button>
+                </div>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Container ID</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Updated</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">System</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="containerTable" class="bg-white divide-y divide-gray-200">
+                        <!-- Container data will be populated here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white mt-12">
+        <div class="container mx-auto px-4 py-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <h4 class="text-xl font-bold mb-4 flex items-center">
+                        <i class="fas fa-recycle mr-2"></i>Qyzylorda Waste Management
+                    </h4>
+                    <p class="text-gray-300 mb-4">
+                        Integrated monitoring system for trash container locations in Qyzylorda city.
+                        Part of the Smart City initiative for efficient waste management.
+                    </p>
+                    <div class="flex space-x-4">
+                        <a href="https://www.qyzylorda.gov.kz" target="_blank" class="text-gray-300 hover:text-white transition-colors duration-300" title="Official City Website">
+                            <i class="fas fa-globe"></i>
+                        </a>
+                        <a href="https://github.com/qyzylorda-waste" target="_blank" class="text-gray-300 hover:text-white transition-colors duration-300" title="GitHub Repository">
+                            <i class="fab fa-github"></i>
+                        </a>
+                        <a href="https://api.waste.qyzylorda.gov.kz/docs" target="_blank" class="text-gray-300 hover:text-white transition-colors duration-300" title="API Documentation">
+                            <i class="fas fa-code"></i>
+                        </a>
+                        <a href="mailto:waste@qyzylorda.gov.kz" class="text-gray-300 hover:text-white transition-colors duration-300" title="Email Support">
+                            <i class="fas fa-envelope"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <div>
+                    <h4 class="text-xl font-bold mb-4">Quick Links</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-300 hover:text-white transition-colors duration-300 flex items-center" onclick="handleNavigation(event, 'map')">
+                            <i class="fas fa-chevron-right text-xs mr-2"></i>Interactive Map
+                        </a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-white transition-colors duration-300 flex items-center" onclick="showAPIDocs()">
+                            <i class="fas fa-chevron-right text-xs mr-2"></i>API Integration
+                        </a></li>
+                        <li><a href="https://data.qyzylorda.gov.kz/waste" target="_blank" class="text-gray-300 hover:text-white transition-colors duration-300 flex items-center">
+                            <i class="fas fa-chevron-right text-xs mr-2"></i>Open Data Portal
+                        </a></li>
+                        <li><a href="https://reports.qyzylorda.gov.kz" target="_blank" class="text-gray-300 hover:text-white transition-colors duration-300 flex items-center">
+                            <i class="fas fa-chevron-right text-xs mr-2"></i>Municipal Reports
+                        </a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="text-xl font-bold mb-4">Integration Partners</h4>
+                    <ul class="space-y-2 text-gray-300">
+                        <li class="flex items-center">
+                            <i class="fas fa-city mr-2 text-green-400"></i>
+                            <span>Qyzylorda Municipal DB</span>
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fas fa-truck mr-2 text-blue-400"></i>
+                            <span>Waste Collection Fleet</span>
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fas fa-mobile-alt mr-2 text-purple-400"></i>
+                            <span>Citizen Mobile App</span>
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fas fa-chart-line mr-2 text-yellow-400"></i>
+                            <span>Analytics Dashboard</span>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="text-xl font-bold mb-4">Contact</h4>
+                    <ul class="space-y-2 text-gray-300">
+                        <li class="flex items-center">
+                            <i class="fas fa-map-marker-alt mr-3"></i>
+                            <span>Qyzylorda City, Kazakhstan</span>
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fas fa-phone mr-3"></i>
+                            <span>+7 (7242) 12-34-56</span>
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fas fa-envelope mr-3"></i>
+                            <span>waste@qyzylorda.gov.kz</span>
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fas fa-clock mr-3"></i>
+                            <span>24/7 Monitoring</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-800 mt-8 pt-8">
+                <div class="flex flex-col md:flex-row justify-between items-center">
+                    <div class="mb-4 md:mb-0">
+                        <p class="text-gray-400">&copy; 2024 Qyzylorda City Waste Management Department. All rights reserved.</p>
+                        <p class="text-gray-500 text-sm mt-2">Integrated with 2GIS Map API and Municipal Systems</p>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="w-3 h-3 bg-green-500 rounded-full mr-2 animate-pulse"></div>
+                        <span class="text-green-400 font-medium">System Status: Operational</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+    
+    <!-- JavaScript -->
+    <script>
+        // API Key for 2GIS Map (Qyzylorda)
+        const API_KEY = "e0117b8c-b023-483c-86c4-e3a9904bcec4";
+        
+        // Coordinates for Qyzylorda, Kazakhstan
+        const QYZYLORDA_COORDINATES = {
+            lat: 44.8479,
+            lon: 65.4995,
+            zoom: 13
+        };
+        
+        // Integrated systems data
+        const integratedSystems = [
+            {
+                "id": "municipal-db",
+                "name": "Qyzylorda Municipal Database",
+                "status": "connected",
+                "lastSync": "2024-01-16 14:30:00",
+                "endpoint": "https://db.qyzylorda.gov.kz/api/waste"
+            },
+            {
+                "id": "collection-fleet",
+                "name": "Collection Fleet System",
+                "status": "connected",
+                "lastSync": "2024-01-16 14:25:00",
+                "endpoint": "https://fleet.qyzylorda.gov.kz/api/tracking"
+            }
+        ];
+        
+        // Sample trash container data for Qyzylorda with system integration
+        const trashContainers = [
+            {
+                "id": "QZ-TC-001",
+                "name": "City Center Container",
+                "type": "general",
+                "status": "active",
+                "capacity": 85,
+                "lastEmptied": "2024-01-15",
+                "lastUpdated": "2024-01-16 14:45:00",
+                "location": {
+                    "lat": 44.8480,
+                    "lon": 65.5000
+                },
+                "address": "Tole bi Street 45, Qyzylorda",
+                "area": "center",
+                "system": "municipal-db",
+                "notes": "Connected to municipal database"
+            },
+            {
+                "id": "QZ-TC-002",
+                "name": "North District Recycling",
+                "type": "plastic",
+                "status": "active",
+                "capacity": 60,
+                "lastEmptied": "2024-01-14",
+                "lastUpdated": "2024-01-16 14:40:00",
+                "location": {
+                    "lat": 44.8700,
+                    "lon": 65.4800
+                },
+                "address": "Aiteke bi District, Qyzylorda",
+                "area": "north",
+                "system": "municipal-db",
+                "notes": "Plastic recycling point - synced"
+            },
+            {
+                "id": "QZ-TC-003",
+                "name": "South Market Container",
+                "type": "general",
+                "status": "warning",
+                "capacity": 95,
+                "lastEmptied": "2024-01-10",
+                "lastUpdated": "2024-01-16 14:35:00",
+                "location": {
+                    "lat": 44.8300,
+                    "lon": 65.5200
+                },
+                "address": "Central Market Area, Qyzylorda",
+                "area": "south",
+                "system": "collection-fleet",
+                "notes": "Needs immediate attention - reported"
+            },
+            {
+                "id": "QZ-TC-004",
+                "name": "East Residential Area",
+                "type": "glass",
+                "status": "active",
+                "capacity": 45,
+                "lastEmptied": "2024-01-16",
+                "lastUpdated": "2024-01-16 14:30:00",
+                "location": {
+                    "lat": 44.8500,
+                    "lon": 65.5500
+                },
+                "address": "Residential Complex 5, Qyzylorda",
+                "area": "east",
+                "system": "municipal-db",
+                "notes": "Glass collection - sync complete"
+            },
+            {
+                "id": "QZ-TC-005",
+                "name": "West Industrial Zone",
+                "type": "hazardous",
+                "status": "maintenance",
+                "capacity": 30,
+                "lastEmptied": "2024-01-05",
+                "lastUpdated": "2024-01-16 14:25:00",
+                "location": {
+                    "lat": 44.8600,
+                    "lon": 65.4500
+                },
+                "address": "Industrial Zone, Qyzylorda",
+                "area": "west",
+                "system": "collection-fleet",
+                "notes": "Hazardous waste - maintenance mode"
+            },
+            {
+                "id": "QZ-TC-006",
+                "name": "University Area Paper",
+                "type": "paper",
+                "status": "active",
+                "capacity": 70,
+                "lastEmptied": "2024-01-13",
+                "lastUpdated": "2024-01-16 14:20:00",
+                "location": {
+                    "lat": 44.8400,
+                    "lon": 65.4900
+                },
+                "address": "Korkyt Ata University, Qyzylorda",
+                "area": "center",
+                "system": "municipal-db",
+                "notes": "Paper recycling - connected"
+            },
+            {
+                "id": "QZ-TC-007",
+                "name": "Park Area General",
+                "type": "general",
+                "status": "full",
+                "capacity": 98,
+                "lastEmptied": "2024-01-08",
+                "lastUpdated": "2024-01-16 14:15:00",
+                "location": {
+                    "lat": 44.8350,
+                    "lon": 65.5100
+                },
+                "address": "City Park, Qyzylorda",
+                "area": "south",
+                "system": "collection-fleet",
+                "notes": "Scheduled for emptying - fleet notified"
+            },
+            {
+                "id": "QZ-TC-008",
+                "name": "Shopping Mall Recycling",
+                "type": "plastic",
+                "status": "active",
+                "capacity": 55,
+                "lastEmptied": "2024-01-15",
+                "lastUpdated": "2024-01-16 14:10:00",
+                "location": {
+                    "lat": 44.8550,
+                    "lon": 65.4950
+                },
+                "address": "Qyzylorda Mall, Qyzylorda",
+                "area": "center",
+                "system": "municipal-db",
+                "notes": "Dual stream - plastic & general"
+            }
+        ];
+        
+        // Global variables
+        let map;
+        let markers = [];
+        let filteredContainers = [...trashContainers];
+        
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeMap();
+            updateStats();
+            renderContainerTable();
+            updateLastUpdated();
+            updateSystemStatus();
+            
+            // Show welcome notification
+            setTimeout(() => {
+                showNotification("Welcome to Qyzylorda Waste Management System", "success");
+            }, 1000);
+        });
+        
+        // Initialize 2GIS Map for Qyzylorda
+        function initializeMap() {
+            DG.then(function() {
+                map = DG.map('map', {
+                    center: [QYZYLORDA_COORDINATES.lat, QYZYLORDA_COORDINATES.lon],
+                    zoom: QYZYLORDA_COORDINATES.zoom,
+                    fullscreenControl: false
+                });
+                
+                // Add scale control
+                DG.control.scale().addTo(map);
+                
+                // Add current location marker for Qyzylorda
+                DG.marker([QYZYLORDA_COORDINATES.lat, QYZYLORDA_COORDINATES.lon], {
+                    icon: DG.icon({
+                        iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png',
+                        iconSize: [40, 40],
+                        iconAnchor: [20, 40],
+                        popupAnchor: [0, -40]
+                    })
+                })
+                .addTo(map)
+                .bindPopup("<div class='marker-popup'><strong>Qyzylorda City Center</strong><br>Main Monitoring Station</div>");
+                
+                // Add trash container markers
+                addContainerMarkers(trashContainers);
+                
+                // Add legend control
+                addMapLegend();
+                
+                // Add integration layer
+                addIntegrationLayer();
+            });
+        }
+        
+        // Add integration layer showing connected systems
+        function addIntegrationLayer() {
+            // Add coverage area polygon (simulated)
+            const coverageArea = [
+                [44.8300, 65.4500],
+                [44.8700, 65.4500],
+                [44.8700, 65.5500],
+                [44.8300, 65.5500]
+            ];
+            
+            DG.polygon(coverageArea, {
+                color: '#3b82f6',
+                fillColor: '#3b82f6',
+                fillOpacity: 0.1,
+                weight: 2
+            }).addTo(map).bindPopup("Municipal Coverage Area");
+        }
+        
+        // Add trash container markers to the map
+        function addContainerMarkers(containers) {
+            // Clear existing markers
+            markers.forEach(marker => map.removeLayer(marker));
+            markers = [];
+            
+            containers.forEach(container => {
+                const iconColor = getStatusColor(container.status);
+                const icon = DG.divIcon({
+                    html: `<div style="background-color: ${iconColor}; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3); cursor: pointer;" onclick="focusContainer('${container.id}')">
+                              <i class="fas fa-trash-alt" style="color: white; font-size: 14px;"></i>
+                           </div>`,
+                    iconSize: [30, 30],
+                    iconAnchor: [15, 15],
+                    popupAnchor: [0, -15]
+                });
+                
+                const marker = DG.marker([container.location.lat, container.location.lon], { icon: icon })
+                    .addTo(map)
+                    .bindPopup(createPopupContent(container));
+                
+                markers.push(marker);
+            });
+        }
+        
+        // Create popup content for markers
+        function createPopupContent(container) {
+            const statusIcon = getStatusIcon(container.status);
+            const typeIcon = getTypeIcon(container.type);
+            const systemIcon = getSystemIcon(container.system);
+            const capacityColor = container.capacity > 80 ? "text-red-500" : container.capacity > 50 ? "text-yellow-500" : "text-green-500";
+            
+            return `
+                <div class="marker-popup">
+                    <div class="flex justify-between items-start mb-3">
+                        <h4 class="font-bold text-lg">${container.name}</h4>
+                        <div class="text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded">
+                            ${systemIcon} ${getSystemName(container.system)}
+                        </div>
+                    </div>
+                    <p class="text-gray-600 mb-2 text-sm">${container.address}</p>
+                    <div class="space-y-2">
+                        <div class="flex items-center">
+                            <span class="text-sm font-medium mr-2">Type:</span>
+                            ${typeIcon}
+                            <span class="ml-1 text-sm">${container.type.charAt(0).toUpperCase() + container.type.slice(1)}</span>
+                        </div>
+                        <div class="flex items-center">
+                            <span class="text-sm font-medium mr-2">Status:</span>
+                            ${statusIcon}
+                            <span class="ml-1 text-sm">${container.status.charAt(0).toUpperCase() + container.status.slice(1)}</span>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="font-medium">Capacity:</span>
+                                <span class="${capacityColor} font-medium">${container.capacity}%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="h-2 rounded-full ${container.capacity > 80 ? "bg-red-500" : container.capacity > 50 ? "bg-yellow-500" : "bg-green-500"}" 
+                                     style="width: ${container.capacity}%"></div>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-500">Last updated: ${container.lastUpdated}</p>
+                    </div>
+                    <div class="mt-4 grid grid-cols-2 gap-2">
+                        <button onclick="focusContainer('${container.id}')" class="bg-qyzylorda-600 text-white py-1 px-3 rounded text-sm hover:bg-qyzylorda-700 transition-colors duration-300">
+                            <i class="fas fa-eye mr-1"></i> Details
+                        </button>
+                        <button onclick="reportIssue('${container.id}')" class="bg-yellow-600 text-white py-1 px-3 rounded text-sm hover:bg-yellow-700 transition-colors duration-300">
+                            <i class="fas fa-flag mr-1"></i> Report
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Get system name
+        function getSystemName(systemId) {
+            const system = integratedSystems.find(s => s.id === systemId);
+            return system ? system.name.split(' ')[0] : 'Unknown';
+        }
+        
+        // Get system icon
+        function getSystemIcon(systemId) {
+            switch(systemId) {
+                case "municipal-db": return '<i class="fas fa-database text-blue-500"></i>';
+                case "collection-fleet": return '<i class="fas fa-truck text-green-500"></i>';
+                default: return '<i class="fas fa-server text-gray-500"></i>';
+            }
+        }
+        
+        // Get color based on container status
+        function getStatusColor(status) {
+            switch(status) {
+                case "active": return "#10b981";
+                case "warning": return "#f59e0b";
+                case "full": return "#ef4444";
+                case "maintenance": return "#6b7280";
+                default: return "#3b82f6";
+            }
+        }
+        
+        // Get icon based on container status
+        function getStatusIcon(status) {
+            switch(status) {
+                case "active": return '<i class="fas fa-check-circle text-green-500"></i>';
+                case "warning": return '<i class="fas fa-exclamation-triangle text-yellow-500"></i>';
+                case "full": return '<i class="fas fa-times-circle text-red-500"></i>';
+                case "maintenance": return '<i class="fas fa-tools text-gray-500"></i>';
+                default: return '<i class="fas fa-circle text-blue-500"></i>';
+            }
+        }
+        
+        // Get icon based on container type
+        function getTypeIcon(type) {
+            switch(type) {
+                case "plastic": return '<i class="fas fa-recycle text-blue-500"></i>';
+                case "glass": return '<i class="fas fa-glass-whiskey text-green-500"></i>';
+                case "paper": return '<i class="fas fa-file-alt text-yellow-700"></i>';
+                case "general": return '<i class="fas fa-trash text-gray-600"></i>';
+                case "hazardous": return '<i class="fas fa-radiation-alt text-red-600"></i>';
+                default: return '<i class="fas fa-trash-alt"></i>';
+            }
+        }
+        
+        // Add map legend
+        function addMapLegend() {
+            const legend = DG.control({ position: 'bottomright' });
+            
+            legend.onAdd = function(map) {
+                const div = DG.DomUtil.create('div', 'legend');
+                div.innerHTML = `
+                    <div class="bg-white p-4 rounded-lg shadow-lg border border-gray-200">
+                        <h4 class="font-bold mb-2 text-gray-800">Container Status</h4>
+                        <div class="space-y-2">
+                            <div class="flex items-center">
+                                <div class="w-4 h-4 rounded-full bg-green-500 mr-2"></div>
+                                <span class="text-sm">Active</span>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="w-4 h-4 rounded-full bg-yellow-500 mr-2"></div>
+                                <span class="text-sm">Warning</span>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="w-4 h-4 rounded-full bg-red-500 mr-2"></div>
+                                <span class="text-sm">Full</span>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="w-4 h-4 rounded-full bg-gray-500 mr-2"></div>
+                                <span class="text-sm">Maintenance</span>
+                            </div>
+                            <div class="mt-3 pt-3 border-t border-gray-200">
+                                <div class="flex items-center">
+                                    <div class="w-4 h-4 bg-blue-500 mr-2"></div>
+                                    <span class="text-sm">Coverage Area</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                return div;
+            };
+            
+            legend.addTo(map);
+        }
+        
+        // Update statistics
+        function updateStats() {
+            const total = filteredContainers.length;
+            const active = filteredContainers.filter(c => c.status === "active").length;
+            const connected = integratedSystems.filter(s => s.status === "connected").length;
+            
+            document.getElementById("totalContainers").textContent = total;
+            document.getElementById("activeContainers").textContent = active;
+            document.getElementById("connectedSystems").textContent = connected;
+        }
+        
+        // Update system status
+        function updateSystemStatus() {
+            const systemsContainer = document.querySelector('.space-y-4');
+            if (systemsContainer) {
+                integratedSystems.forEach(system => {
+                    const statusElement = systemsContainer.querySelector(`[data-system="${system.id}"] .status-indicator`);
+                    if (statusElement) {
+                        statusElement.className = `w-3 h-3 rounded-full mr-2 ${system.status === 'connected' ? 'bg-green-500' : 'bg-yellow-500'}`;
+                        statusElement.nextElementSibling.textContent = system.status === 'connected' ? 'Connected' : 'Pending';
+                        statusElement.nextElementSibling.className = `text-sm ${system.status === 'connected' ? 'text-green-600' : 'text-yellow-600'} font-medium`;
+                    }
+                });
+            }
+        }
+        
+        // Update last updated time
+        function updateLastUpdated() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+            const dateString = now.toLocaleDateString();
+            document.getElementById("lastUpdated").textContent = `${timeString}`;
+            
+            // Update every minute
+            setTimeout(updateLastUpdated, 60000);
+        }
+        
+        // Render container table
+        function renderContainerTable() {
+            const tableBody = document.getElementById("containerTable");
+            tableBody.innerHTML = "";
+            
+            filteredContainers.forEach(container => {
+                const statusIcon = getStatusIcon(container.status);
+                const typeIcon = getTypeIcon(container.type);
+                const systemIcon = getSystemIcon(container.system);
+                const capacityColor = container.capacity > 80 ? "text-red-500" : container.capacity > 50 ? "text-yellow-500" : "text-green-500";
+                
+                const row = document.createElement("tr");
+                row.className = "hover:bg-gray-50 transition-colors duration-300";
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="font-medium text-qyzylorda-700">${container.id}</span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="text-sm text-gray-900">${container.name}</div>
+                        <div class="text-sm text-gray-500">${container.address}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            ${typeIcon}
+                            <span class="ml-2">${container.type.charAt(0).toUpperCase() + container.type.slice(1)}</span>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            ${statusIcon}
+                            <span class="ml-2">${container.status.charAt(0).toUpperCase() + container.status.slice(1)}</span>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        ${container.lastUpdated}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            ${systemIcon}
+                            <span class="ml-2 text-sm">${getSystemName(container.system)}</span>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button onclick="focusContainer('${container.id}')" class="text-qyzylorda-600 hover:text-qyzylorda-800 mr-3" title="Focus on map">
+                            <i class="fas fa-map-marker-alt"></i>
+                        </button>
+                        <button onclick="showContainerDetails('${container.id}')" class="text-blue-600 hover:text-blue-800 mr-3" title="View details">
+                            <i class="fas fa-info-circle"></i>
+                        </button>
+                        <button onclick="integrateWithSystem('${container.id}')" class="text-green-600 hover:text-green-800" title="Integrate">
+                            <i class="fas fa-link"></i>
+                        </button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+        
+        // Focus on a specific container
+        function focusContainer(containerId) {
+            const container = trashContainers.find(c => c.id === containerId);
+            if (container && map) {
+                map.setView([container.location.lat, container.location.lon], 16);
+                
+                // Find and open the marker popup
+                const markerIndex = filteredContainers.findIndex(c => c.id === containerId);
+                if (markerIndex !== -1 && markers[markerIndex]) {
+                    markers[markerIndex].openPopup();
+                }
+                
+                // Show notification
+                showNotification(`Focused on container ${containerId}`, "info");
+            }
+        }
+        
+        // Show container details
+        function showContainerDetails(containerId) {
+            const container = trashContainers.find(c => c.id === containerId);
+            if (container) {
+                const details = `
+Container Details:
+• ID: ${container.id}
+• Name: ${container.name}
+• Type: ${container.type}
+• Status: ${container.status}
+• Capacity: ${container.capacity}%
+• Last Emptied: ${container.lastEmptied}
+• System: ${getSystemName(container.system)}
+• Location: ${container.location.lat.toFixed(4)}, ${container.location.lon.toFixed(4)}
+• Address: ${container.address}
+• Notes: ${container.notes}
+                `.trim();
+                
+                alert(details);
+            }
+        }
+        
+        // Integrate container with system
+        function integrateWithSystem(containerId) {
+            const container = trashContainers.find(c => c.id === containerId);
+            if (container) {
+                showNotification(`Integrating container ${containerId} with municipal systems...`, "info");
+                
+                // Simulate API call
+                setTimeout(() => {
+                    showNotification(`Container ${containerId} successfully integrated!`, "success");
+                }, 1500);
+            }
+        }
+        
+        // Report issue for a container
+        function reportIssue(containerId) {
+            const container = trashContainers.find(c => c.id === containerId);
+            if (container) {
+                const issue = prompt(`Report an issue for container ${containerId} (${container.name}):\n\nDescribe the issue:`, "");
+                if (issue) {
+                    // Simulate API call to external system
+                    showNotification(`Reporting issue for ${containerId}...`, "info");
+                    
+                    setTimeout(() => {
+                        showNotification(`Issue reported successfully! Ticket #${Math.floor(Math.random() * 10000)} created.`, "success");
+                        
+                        // Simulate updating container status
+                        if (container.status !== "warning" && container.status !== "full") {
+                            container.status = "warning";
+                            filterContainers();
+                        }
+                    }, 2000);
+                }
+            }
+        }
+        
+        // Test integration with external systems
+        function testIntegration() {
+            showNotification("Testing integration with municipal systems...", "info");
+            
+            // Simulate testing connections
+            setTimeout(() => {
+                let successCount = 0;
+                integratedSystems.forEach(system => {
+                    if (system.status === "connected") successCount++;
+                });
+                
+                if (successCount === integratedSystems.length) {
+                    showNotification("All systems connected successfully!", "success");
+                } else {
+                    showNotification(`${successCount}/${integratedSystems.length} systems connected`, "warning");
+                }
+            }, 2000);
+        }
+        
+        // Sync all systems
+        function syncAllSystems() {
+            showNotification("Synchronizing all connected systems...", "info");
+            
+            // Simulate sync process
+            setTimeout(() => {
+                // Update last sync times
+                const now = new Date();
+                integratedSystems.forEach(system => {
+                    system.lastSync = now.toISOString().replace('T', ' ').substring(0, 19);
+                });
+                
+                // Update container data
+                trashContainers.forEach(container => {
+                    const now = new Date();
+                    container.lastUpdated = now.toISOString().replace('T', ' ').substring(0, 19);
+                    
+                    // Simulate small capacity changes
+                    if (Math.random() > 0.7 && container.status !== "maintenance") {
+                        const change = Math.floor(Math.random() * 5) + 1;
+                        container.capacity = Math.min(100, container.capacity + change);
+                        
+                        if (container.capacity > 90 && container.status !== "full") {
+                            container.status = "full";
+                        } else if (container.capacity > 80 && container.status !== "warning") {
+                            container.status = "warning";
+                        }
+                    }
+                });
+                
+                // Refresh display
+                filterContainers();
+                updateLastUpdated();
+                updateSystemStatus();
+                
+                showNotification("All systems synchronized successfully!", "success");
+            }, 3000);
+        }
+        
+        // Export map data
+        function exportMapData() {
+            const data = {
+                city: "Qyzylorda",
+                timestamp: new Date().toISOString(),
+                containers: filteredContainers,
+                systems: integratedSystems
+            };
+            
+            const dataStr = JSON.stringify(data, null, 2);
+            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+            
+            const exportFileDefaultName = `qyzylorda-waste-data-${new Date().toISOString().split('T')[0]}.json`;
+            
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', exportFileDefaultName);
+            linkElement.click();
+            
+            showNotification("Map data exported successfully!", "success");
+        }
+        
+        // Export CSV data
+        function exportData() {
+            let csvContent = "ID,Name,Type,Status,Capacity,Last Emptied,System,Address\n";
+            
+            filteredContainers.forEach(container => {
+                csvContent += `"${container.id}","${container.name}","${container.type}","${container.status}",${container.capacity},"${container.lastEmptied}","${getSystemName(container.system)}","${container.address}"\n`;
+            });
+            
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", `qyzylorda-containers-${new Date().toISOString().split('T')[0]}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            showNotification("CSV data exported successfully!", "success");
+        }
+        
+        // Show notification
+        function showNotification(message, type = "info") {
+            const notification = document.getElementById("notification");
+            const messageElement = document.getElementById("notificationMessage");
+            
+            // Set message and type-based styling
+            messageElement.textContent = message;
+            
+            // Update color based on type
+            const bgColor = type === "success" ? "bg-green-500" : 
+                           type === "warning" ? "bg-yellow-500" : 
+                           type === "error" ? "bg-red-500" : "bg-blue-500";
+            
+            notification.className = `notification ${bgColor} text-white px-6 py-4 rounded-lg shadow-lg flex items-center justify-between min-w-[300px]`;
+            
+            // Show notification
+            notification.classList.remove("hidden");
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                notification.classList.add("hidden");
+            }, 5000);
+        }
+        
+        // Close notification
+        function closeNotification() {
+            document.getElementById("notification").classList.add("hidden");
+        }
+        
+        // Show API documentation
+        function showAPIDocs() {
+            const docsWindow = window.open('', '_blank');
+            docsWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Qyzylorda Waste Management API Documentation</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
+                        h1 { color: #1e40af; }
+                        .endpoint { background: #f3f4f6; padding: 15px; border-radius: 5px; margin: 20px 0; }
+                        code { background: #e5e7eb; padding: 2px 5px; border-radius: 3px; }
+                    </style>
+                </head>
+                <body>
+                    <h1>Qyzylorda Waste Management API</h1>
+                    <p>Integration endpoints for external systems</p>
+                    
+                    <div class="endpoint">
+                        <h3>GET /api/containers</h3>
+                        <p>Returns all trash containers data</p>
+                        <code>GET https://waste.qyzylorda.gov.kz/api/containers</code>
+                    </div>
+                    
+                    <div class="endpoint">
+                        <h3>POST /api/reports</h3>
+                        <p>Submit a container issue report</p>
+                        <code>POST https://waste.qyzylorda.gov.kz/api/reports</code>
+                    </div>
+                    
+                    <div class="endpoint">
+                        <h3>WebSocket: /ws/updates</h3>
+                        <p>Real-time container updates</p>
+                        <code>wss://waste.qyzylorda.gov.kz/ws/updates</code>
+                    </div>
+                </body>
+                </html>
+            `);
+        }
+        
+        // Refresh data
+        function refreshData() {
+            showNotification("Refreshing data from integrated systems...", "info");
+            
+            // Simulate API refresh
+            setTimeout(() => {
+                // Update some random containers
+                trashContainers.forEach(container => {
+                    if (Math.random() > 0.5) {
+                        const now = new Date();
+                        container.lastUpdated = now.toISOString().replace('T', ' ').substring(0, 19);
+                    }
+                });
+                
+                filterContainers();
+                updateLastUpdated();
+                showNotification("Data refreshed successfully!", "success");
+            }, 1500);
+        }
+        
+        // Navigation handler
+        function handleNavigation(event, section) {
+            event.preventDefault();
+            
+            switch(section) {
+                case "map":
+                    window.scrollTo({ top: document.querySelector("#mapSection").offsetTop - 100, behavior: "smooth" });
+                    break;
+                case "integration":
+                    window.scrollTo({ top: document.querySelector("#integrationSection").offsetTop - 100, behavior: "smooth" });
+                    break;
+                case "reports":
+                    window.scrollTo({ top: document.querySelector("#reportsSection").offsetTop - 100, behavior: "smooth" });
+                    break;
+                case "api":
+                    showAPIDocs();
+                    break;
+                default:
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+            }
+        }
+        
+        // Map controls
+        function zoomIn() {
+            if (map) {
+                map.zoomIn();
+            }
+        }
+        
+        function zoomOut() {
+            if (map) {
+                map.zoomOut();
+            }
+        }
+        
+        function centerMap() {
+            if (map) {
+                map.setView([QYZYLORDA_COORDINATES.lat, QYZYLORDA_COORDINATES.lon], QYZYLORDA_COORDINATES.zoom);
+                showNotification("Map centered on Qyzylorda", "info");
+            }
+        }
+        
+        // Filter function (placeholder - implement as needed)
+        function filterContainers() {
+            // This would filter containers based on UI controls
+            // For now, just use all containers
+            filteredContainers = [...trashContainers];
+            addContainerMarkers(filteredContainers);
+            renderContainerTable();
+            updateStats();
+        }
+        
+        // Initialize with console logging
+        console.log("Qyzylorda Waste Management System initialized");
+        console.log("API Key loaded:", API_KEY ? "Yes" : "No");
+        console.log("Integrated systems:", integratedSystems.length);
+        console.log("Total containers:", trashContainers.length);
+        
+        // Auto-refresh data every 30 seconds
+        setInterval(() => {
+            if (Math.random() > 0.7) { // 30% chance to auto-refresh
+                refreshData();
+            }
+        }, 30000);
+    </script>
+</body>
+</html>
